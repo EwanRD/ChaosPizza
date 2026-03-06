@@ -1,0 +1,7 @@
+{
+  "pizzas": [
+    { "id": 1, "name": "Margherita", "price": 8 },
+    { "id": 2, "name": "Pepperoni", "price": 10 },
+    { "id": 3, "name": "Hawaian", "price": 11 }
+  ],
+  "orders": []

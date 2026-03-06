@@ -1,0 +1,17 @@
+{
+  "name": "chaos-pizza-api",
+  "version": "1.0.0",
+  "description": "API de livraison de pizza instable",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "load-test": "artillery run loadtest.yml"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "artillery": "^2.0.0-31"
+  }
+}

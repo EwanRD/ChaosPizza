@@ -1,0 +1,16 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 5
+      arrivalRate: 20
+      name: "Ruée sur les 50 Margheritas"
+scenarios:
+  - name: "Acheter une pizza"
+    flow:
+      - post:
+          url: "/orders"
+          json:
+            promoCode: "HALF"
+            items:
+              - pizzaId: 1
+                qty: 1
