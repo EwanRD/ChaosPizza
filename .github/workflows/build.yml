@@ -3,7 +3,13 @@ name: Build
 on:
   push:
     branches:
+      - main
+      - master
+      - "feature/**"
+      - "bug/**"
       - "*"
+      - "**"
+      - "*/**"
 
 jobs:
   build:
