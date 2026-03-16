@@ -54,13 +54,14 @@ describe("POST /orders — création de commande", () => {
   });
 });
 
-describe("PUT /orders/:id/status — mise à jour du statut", () => {
+describe('PUT /orders/:id/status — mise à jour du statut', () => {
+
   // ── Test 2 ──────────────────────────────────────────────────────────────────
   // On crée d'abord une commande, puis on tente de mettre à jour son statut vers PREPARING
-  it("devrait mettre à jour le statut vers PREPARING", async () => {
+  it('devrait mettre à jour le statut vers PREPARING', async () => {
     // Créer une commande d'abord
     const create = await request(app)
-      .post("/orders")
+      .post('/orders')
       .send({ items: [{ pizzaId: 1, qty: 1 }] });
 
     const orderId = create.body.id;
@@ -68,29 +69,31 @@ describe("PUT /orders/:id/status — mise à jour du statut", () => {
     // Mettre à jour son statut
     const response = await request(app)
       .put(`/orders/${orderId}/status`)
-      .send({ status: "PREPARING" });
+      .send({ status: 'PREPARING' });
 
     expect(response.status).toBe(200);
     expect(response.body.id).toBe(orderId);
-    expect(response.body.status).toBe("PREPARING");
+    expect(response.body.status).toBe('PREPARING');
   });
 
   // On teste aussi les cas d'erreur : statut invalide et commande inexistante
-  it("devrait retourner 400 pour un statut invalide", async () => {
+  it('devrait retourner 400 pour un statut invalide', async () => {
     const response = await request(app)
-      .put("/orders/1/status")
-      .send({ status: "ANNULÉE" }); // valeur non acceptée
+      .put('/orders/1/status')
+      .send({ status: 'ANNULÉE' }); // valeur non acceptée
 
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty("error");
+    expect(response.body).toHaveProperty('error');
   });
 
-  it("devrait retourner 400 si la commande n'existe pas", async () => {
+  it('devrait retourner 400 si la commande n\'existe pas', async () => {
     const response = await request(app)
-      .put("/orders/99999/status")
-      .send({ status: "DELIVERED" });
+      .put('/orders/99999/status')
+      .send({ status: 'DELIVERED' });
 
     expect(response.status).toBe(400);
-    expect(response.body.error).toBe("commande introuvable");
+    expect(response.body.error).toBe('commande introuvable');
   });
 });
+
+
