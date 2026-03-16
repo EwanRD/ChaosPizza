@@ -74,6 +74,10 @@ if (total === 0) {
 
 }
 
+/*
+* Goal: Method to fetch articles form a command
+* Param: cb //the command number
+*/
 function getOrders(cb) {
   db.all("SELECT * FROM orders", function(err, rows) {
     if (err) return cb(err);
@@ -81,7 +85,8 @@ function getOrders(cb) {
 
     for (let i = 0; i < rows.length; i++) {
       let o = rows[i];
-      o.total = utils.round(o.total * 1.05); // Taxe d'inflation sauvage appliquée a posteriori
+      //the final price of an article, including tax, isn't registered in the database.
+      //o.total = utils.round(o.total * 1.05);
       result.push(o);
     }
     
