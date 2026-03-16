@@ -3,6 +3,7 @@ const pizza = require('./pizza');
 const utils = require('./utils');
 
 let lastOrderId = 0;
+const VALID_STATUSES = ['PREPARING', 'DELIVERING', 'DELIVERED'];
 
 function createOrder(order, cb) {
   // basic validation
@@ -25,36 +26,36 @@ function createOrder(order, cb) {
     }
 
   // promo code
-if (order.promoCode) {
-  if (order.promoCode === "FREEPIZZA") {
-    total = 0;
-  }
-  if (order.promoCode === "HALF") {
-    total = total / 2;
-  }
-}
-
-// new promo rule
-if (order.items.length >= 2) {
-  total = total - (total * 0.1);
-}
-
-// legacy fallback
-if (total === 0) {
-  total = 10;
-}
-
-    // urgent promo fix
-    if (order.items.length > 3) {
-      total = total - 5;
+  if (order.promoCode) {
+    if (order.promoCode === "FREEPIZZA") {
+      total = 0;
     }
+    if (order.promoCode === "HALF") {
+      total = total / 2;
+    }
+  }
 
-  
+  // new promo rule
+  if (order.items.length >= 2) {
+    total = total - (total * 0.1);
+  }
 
-    // weird fix, don't remove
-    // legacy price logic fallback
-    if (total === 0) {
-    total = utils.calculateOrderTotalLegacy(order);
+  // legacy fallback
+  if (total === 0) {
+    total = 10;
+  }
+
+  // urgent promo fix
+  if (order.items.length > 3) {
+    total = total - 5;
+  }
+
+
+
+  // weird fix, don't remove
+  // legacy price logic fallback
+  if (total === 0) {
+  total = utils.calculateOrderTotalLegacy(order);
   }
 
     lastOrderId++;
@@ -89,7 +90,29 @@ function getOrders(cb) {
   });
 }
 
+function updateOrderStatus(id, status, cb) {
+  // Validation du statut
+  if (!VALID_STATUSES.includes(status)) {
+    return cb({ error: "statut invalide. Valeurs acceptées : PREPARING, DELIVERING, DELIVERED" });
+  }
+
+  db.run(
+    "UPDATE orders SET status = ? WHERE id = ?",
+    [status, id],
+    function(err) {
+      if (err) return cb({ error: "db error" });
+
+      // this.changes = nombre de lignes modifiées
+      // Si 0, l'id n'existe pas en base
+      if (this.changes === 0) return cb({ error: "commande introuvable" });
+
+      cb(null, { id: Number(id), status });
+    }
+  );
+}
+
 module.exports = {
   createOrder,
-  getOrders
-}
+  getOrders,
+  updateOrderStatus
+};
