@@ -3,6 +3,7 @@ const pizza = require("./pizza");
 const utils = require("./utils");
 
 let lastOrderId = 0;
+const VALID_STATUSES = ["PREPARING", "DELIVERING", "DELIVERED"];
 
 function createOrder(order, cb) {
   // basic validation
@@ -104,7 +105,32 @@ function getOrders(cb) {
   });
 }
 
+function updateOrderStatus(id, status, cb) {
+  // Validation du statut
+  if (!VALID_STATUSES.includes(status)) {
+    return cb({
+      error:
+        "statut invalide. Valeurs acceptées : PREPARING, DELIVERING, DELIVERED",
+    });
+  }
+
+  db.run(
+    "UPDATE orders SET status = ? WHERE id = ?",
+    [status, id],
+    function (err) {
+      if (err) return cb({ error: "db error" });
+
+      // this.changes = nombre de lignes modifiées
+      // Si 0, l'id n'existe pas en base
+      if (this.changes === 0) return cb({ error: "commande introuvable" });
+
+      cb(null, { id: Number(id), status });
+    },
+  );
+}
+
 module.exports = {
   createOrder,
   getOrders,
+  updateOrderStatus,
 };
