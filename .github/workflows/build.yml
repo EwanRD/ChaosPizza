@@ -30,11 +30,6 @@ jobs:
       - name: Run tests with coverage
         run: npm run test
 
-      - name: Show coverage file (debug)
-        run: |
-          ls -la coverage
-          [ -f coverage/lcov.info ] && echo 'lcov ok' || (echo 'lcov missing' && exit 1)
-
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         with:
