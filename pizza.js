@@ -14,11 +14,7 @@ function getAllPizzas(cb) {
 
 // legacy price logic
 function getPizzaPrice(id) {
-  if (!Array.isArray(globalPizzaCache) || globalPizzaCache.length === 0) {
-    return 0;
-  }
-
-  for (let pizza of globalPizzaCache) {
+  for(let pizza of globalPizzaCache) {
     if (pizza.id == id) {
       return pizza.price;
     }
