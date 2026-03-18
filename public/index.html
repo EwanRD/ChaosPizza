@@ -72,7 +72,7 @@ try{
   pizzas = await res.json();
   renderPizzas();
 }catch(e) {
-  console.error('Impossible de charger les pizzas :', err);
+  console.log('Impossible de charger les pizzas : ${e}');
 }
 
 function renderPizzas() {
