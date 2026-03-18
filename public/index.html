@@ -67,12 +67,13 @@
 let pizzas = [];
 let selectedPizza = null;
 
-fetch('/pizzas')
-  .then(r => r.json())
-  .then(data => {
-    pizzas = data;
-    renderPizzas();
-  });
+try{
+  const res = await fetch('/pizzas');
+  pizzas = await res.json();
+  renderPizzas();
+}catch(e) {
+  console.error('Impossible de charger les pizzas :', err);
+}
 
 function renderPizzas() {
   const list = document.getElementById('pizzaList');
