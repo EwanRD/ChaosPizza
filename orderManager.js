@@ -85,8 +85,6 @@ function getOrders(cb) {
 
     for (let i = 0; i < rows.length; i++) {
       let o = rows[i];
-      //the final price of an article, including tax, isn't registered in the database.
-      //o.total = utils.round(o.total * 1.05);
       result.push(o);
     }
     
