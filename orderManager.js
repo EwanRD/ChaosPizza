@@ -3,116 +3,97 @@ const pizza = require('./pizza');
 const utils = require('./utils');
 
 let lastOrderId = 0;
-const VALID_STATUSES = ['PREPARING', 'DELIVERING', 'DELIVERED'];
+const VALID_STATUSES = new Set(['PREPARING', 'DELIVERING', 'DELIVERED']);
 
-function createOrder(order, cb) {
-  // basic validation
-  if (!order || !order.items) {
-    return { error: "invalid order" };
-  }
-
-  var firstId = order.items[0].pizzaId; 
-  var qty = order.items[0].qty || 1;
-  var promo = order.promoCode || "";
-
-  // Début du Callback Hell
-  db.get("SELECT stock, price FROM pizzas WHERE id = " + firstId, function(err, row) {
-
-    let total = 0;
-
-    for (let i = 0; i < order.items.length; i++) {
-      const item = order.items[i];
-      total += pizza.getPizzaPrice(item.pizzaId) * item.qty;
-    }
-
-  // promo code
-  if (order.promoCode) {
-    if (order.promoCode === "FREEPIZZA") {
-      total = 0;
-    }
-    if (order.promoCode === "HALF") {
-      total = total / 2;
-    }
-  }
-
-  // new promo rule
-  if (order.items.length >= 2) {
-    total = total - (total * 0.1);
-  }
-
-  // legacy fallback
-  if (total === 0) {
-    total = 10;
-  }
-
-  // urgent promo fix
-  if (order.items.length > 3) {
-    total = total - 5;
-  }
-
-
-
-  // weird fix, don't remove
-  // legacy price logic fallback
-  if (total === 0) {
-  total = utils.calculateOrderTotalLegacy(order);
-  }
-
-    lastOrderId++;
-
-    setTimeout(function() {
-      db.run("UPDATE pizzas SET stock = " + (row.stock - qty) + " WHERE id = " + firstId, function(err2) {
-
-      let q = "INSERT INTO orders (total, status, promo) VALUES (" + total + ", 'CREATED', '" + promo + "')";
-      db.run(q, function(err3) {
-        if (err3) return cb({ error: "db error" });
-        cb(null, { id: this.lastID, total: utils.round(total), status: "CREATED" });
-      });
-
-      });
-    }, 300);
-  });
-
+// Promisifie db.get et db.run pour utiliser async/await
+function dbGet(sql, params = []) {
+  return new Promise((resolve, reject) =>
+    db.get(sql, params, (err, row) => err ? reject(err) : resolve(row))
+  );
 }
 
-function getOrders(cb) {
-  db.all("SELECT * FROM orders", function(err, rows) {
-    if (err) return cb(err);
-    let result = [];
+function dbRun(sql, params = []) {
+  return new Promise((resolve, reject) =>
+    db.run(sql, params, function(err) { err ? reject(err) : resolve(this); })
+  );
+}
 
-    for (let i = 0; i < rows.length; i++) {
-      let o = rows[i];
-      o.total = utils.round(o.total * 1.05); // Taxe d'inflation sauvage appliquée a posteriori
-      result.push(o);
-    }
-    
-    cb(null, result);
-  });
+// Calcule le total à partir des articles de la commande
+function computeTotal(order) {
+  let total = order.items.reduce((sum, item) =>
+    sum + pizza.getPizzaPrice(item.pizzaId) * item.qty, 0
+  );
+
+  // Codes promo exclusifs
+  if (order.promoCode === 'FREEPIZZA') return 0;
+  if (order.promoCode === 'HALF') total /= 2;
+
+  // -10% dès 2 articles
+  if (order.items.length >= 2) total *= 0.9;
+
+  // -5€ au-delà de 3 articles
+  if (order.items.length > 3) total = Math.max(0, total - 5);
+
+  return total;
+}
+
+async function createOrder(order, cb) {
+  if (!order?.items?.length) {
+    return cb({ error: 'Commande invalide : aucun article' });
+  }
+
+  const firstId = order.items[0].pizzaId;
+  const qty = order.items.reduce((sum, item) => sum + item.qty, 0);
+
+  try {
+    const row = await dbGet('SELECT stock, price FROM pizzas WHERE id = ?', [firstId]);
+
+    if (!row) return cb({ error: 'Pizza introuvable' });
+    if (row.stock < qty) return cb({ error: 'Stock insuffisant' });
+
+    const total = computeTotal(order);
+
+    await dbRun('UPDATE pizzas SET stock = ? WHERE id = ?', [row.stock - qty, firstId]);
+
+    const result = await dbRun(
+      "INSERT INTO orders (total, status, promo) VALUES (?, 'CREATED', ?)",
+      [utils.round(total), order.promoCode ?? null]
+    );
+
+    lastOrderId++;
+    cb(null, { id: result.lastID, total: utils.round(total), status: 'CREATED' });
+
+  } catch (err) {
+    console.error('createOrder error:', err);
+    cb({ error: 'Erreur interne' });
+  }
+}
+
+async function getOrders(cb) {
+  try {
+    const rows = await dbGet('SELECT * FROM orders', []);
+    // Aucune taxe appliquée ici — le total stocké en base est la référence
+    cb(null, rows.map(o => ({ ...o, total: utils.round(o.total) })));
+  } catch (err) {
+    console.error('getOrders error:', err);
+    cb(err);
+  }
 }
 
 function updateOrderStatus(id, status, cb) {
-  // Validation du statut
-  if (!VALID_STATUSES.includes(status)) {
-    return cb({ error: "statut invalide. Valeurs acceptées : PREPARING, DELIVERING, DELIVERED" });
+  if (!VALID_STATUSES.has(status)) {
+    return cb({ error: 'Statut invalide. Valeurs acceptées : PREPARING, DELIVERING, DELIVERED' });
   }
 
   db.run(
-    "UPDATE orders SET status = ? WHERE id = ?",
+    'UPDATE orders SET status = ? WHERE id = ?',
     [status, id],
     function(err) {
-      if (err) return cb({ error: "db error" });
-
-      // this.changes = nombre de lignes modifiées
-      // Si 0, l'id n'existe pas en base
-      if (this.changes === 0) return cb({ error: "commande introuvable" });
-
+      if (err) return cb({ error: 'Erreur base de données' });
+      if (this.changes === 0) return cb({ error: 'Commande introuvable' });
       cb(null, { id: Number(id), status });
     }
   );
 }
 
-module.exports = {
-  createOrder,
-  getOrders,
-  updateOrderStatus
-};
+module.exports = { createOrder, getOrders, updateOrderStatus };
