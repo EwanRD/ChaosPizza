@@ -1,6 +1,6 @@
 const db = require('./database');
 
-const globalPizzaCache = [];
+let globalPizzaCache;
 
 db.all("SELECT * FROM pizzas", (err, rows) => {
     if(!err) globalPizzaCache = rows;
