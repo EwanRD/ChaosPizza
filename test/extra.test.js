@@ -68,7 +68,7 @@ describe('lightweight extra coverage tests', () => {
         get: (sql, params, cb) => cb(null, { stock: 10, price: 10 }),
         run: function(sql, params, cb) {
           // emulate sqlite run callback with `this` providing lastID/changes
-          cb.call({ lastID: 77, changes: 1 }, null);
+          cb && cb.call({ lastID: 77, changes: 1 }, null);
         },
         all: () => {}
       }));
