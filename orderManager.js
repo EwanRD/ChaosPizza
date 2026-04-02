@@ -70,19 +70,43 @@ async function _createOrderAsync(order, cb) {
   const qty = order.items.reduce((sum, item) => sum + item.qty, 0);
 
   try {
+    // ensure pizza exists and there is enough stock before attempting DB changes
     const row = await dbGet('SELECT stock, price FROM pizzas WHERE id = ?', [firstId]);
-
     if (!row) return cb({ error: 'Pizza introuvable' });
     if (row.stock < qty) return cb({ error: 'Stock insuffisant' });
 
+    // compute total before attempting DB changes
     const total = computeTotal(order);
 
-    await dbRun('UPDATE pizzas SET stock = ? WHERE id = ?', [row.stock - qty, firstId]);
+    // Use a transaction to limit write-lock duration and keep update+insert atomic
+    await dbRun('BEGIN TRANSACTION');
+    try {
+      const updateRes = await dbRun(
+        'UPDATE pizzas SET stock = stock - ? WHERE id = ? AND stock >= ?',
+        [qty, firstId, qty]
+      );
 
-    const result = await dbRun(
-      "INSERT INTO orders (total, status, promo) VALUES (?, 'CREATED', ?)",
-      [utils.round(total), order.promoCode ?? null]
-    );
+      if (!updateRes || updateRes.changes === 0) {
+        await dbRun('ROLLBACK');
+        const current = await dbGet('SELECT stock FROM pizzas WHERE id = ?', [firstId]);
+        if (!current) return cb({ error: 'Pizza introuvable' });
+        return cb({ error: 'Stock insuffisant' });
+      }
+
+      const result = await dbRun(
+        "INSERT INTO orders (total, status, promo) VALUES (?, 'CREATED', ?)",
+        [utils.round(total), order.promoCode ?? null]
+      );
+
+      await dbRun('COMMIT');
+
+      lastOrderId++;
+      cb(null, { id: result.lastID, total: utils.round(total), status: 'CREATED' });
+      return;
+    } catch (txErr) {
+      await dbRun('ROLLBACK');
+      throw txErr;
+    }
 
     lastOrderId++;
     cb(null, { id: result.lastID, total: utils.round(total), status: 'CREATED' });
@@ -97,7 +121,7 @@ async function getOrders(cb) {
   try {
     const rows = await dbAll('SELECT * FROM orders', []);
     // apply inflation tax x1.05 to match existing expectations
-    cb(null, rows.map((o) => ({ ...o, total: utils.round(o.total * 1.05) })));
+    cb(null, rows.map((o) => ({ ...o, total: utils.round(o.total) })));
   } catch (err) {
     console.error('getOrders error:', err);
     cb(err);

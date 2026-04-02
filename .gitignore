@@ -40,3 +40,5 @@ Thumbs.db
 
 test.sh
 pizza.db
+pizza.db-shm
+pizza.db-wal
