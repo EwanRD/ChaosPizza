@@ -36,7 +36,7 @@ describe('lightweight extra coverage tests', () => {
     test('createOrder pizza introuvable', (done) => {
       jest.doMock('../database', () => ({
         get: (sql, params, cb) => cb(null, undefined),
-        run: () => {},
+        run: (sql, params, cb) => cb && cb.call({ lastID: 0, changes: 0 }, null),
         all: () => {}
       }));
       jest.doMock('../pizza', () => ({ getPizzaPrice: () => 0 }));
@@ -51,7 +51,7 @@ describe('lightweight extra coverage tests', () => {
     test('createOrder stock insuffisant', (done) => {
       jest.doMock('../database', () => ({
         get: (sql, params, cb) => cb(null, { stock: 0, price: 10 }),
-        run: () => {},
+        run: (sql, params, cb) => cb && cb.call({ lastID: 0, changes: 0 }, null),
         all: () => {}
       }));
       jest.doMock('../pizza', () => ({ getPizzaPrice: () => 10 }));
@@ -68,7 +68,7 @@ describe('lightweight extra coverage tests', () => {
         get: (sql, params, cb) => cb(null, { stock: 10, price: 10 }),
         run: function(sql, params, cb) {
           // emulate sqlite run callback with `this` providing lastID/changes
-          cb.call({ lastID: 77, changes: 1 }, null);
+          cb && cb.call({ lastID: 77, changes: 1 }, null);
         },
         all: () => {}
       }));
