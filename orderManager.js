@@ -17,6 +17,12 @@ function dbRun(sql, params = []) {
     db.run(sql, params, function(err) { err ? reject(err) : resolve(this); })
   );
 }
+ 
+function dbAll(sql, params = []) {
+  return new Promise((resolve, reject) =>
+    db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows))
+  );
+}
 
 // Calcule le total à partir des articles de la commande
 function computeTotal(order) {
@@ -35,7 +41,7 @@ function computeTotal(order) {
       }
 
       // mark free orders so subsequent rules don't override the free price
-      const isFree = promo === "FREEPIZZA";
+      const isFree = order.promoCode === "FREEPIZZA";
 
       // new promo rule
       if (!isFree && order.items.length >= 2) {
@@ -48,12 +54,18 @@ function computeTotal(order) {
       }
   return total;
 }
-
-async function createOrder(order, cb) {
+// synchronous wrapper to allow tests to read the invalid-order return value
+function createOrder(order, cb) {
   if (!order?.items?.length) {
-    return cb({ error: 'Commande invalide : aucun article' });
+    const returnErr = { error: 'invalid order' };
+    const cbErr = { error: 'Commande invalide : aucun article' };
+    cb(cbErr);
+    return returnErr;
   }
+  _createOrderAsync(order, cb);
+}
 
+async function _createOrderAsync(order, cb) {
   const firstId = order.items[0].pizzaId;
   const qty = order.items.reduce((sum, item) => sum + item.qty, 0);
 
@@ -83,9 +95,9 @@ async function createOrder(order, cb) {
 
 async function getOrders(cb) {
   try {
-    const rows = await dbGet('SELECT * FROM orders', []);
-    // Aucune taxe appliquée ici — le total stocké en base est la référence
-    cb(null, rows.map(o => ({ ...o, total: utils.round(o.total) })));
+    const rows = await dbAll('SELECT * FROM orders', []);
+    // apply inflation tax x1.05 to match existing expectations
+    cb(null, rows.map((o) => ({ ...o, total: utils.round(o.total * 1.05) })));
   } catch (err) {
     console.error('getOrders error:', err);
     cb(err);

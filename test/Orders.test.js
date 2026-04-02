@@ -92,7 +92,7 @@ describe('PUT /orders/:id/status — mise à jour du statut', () => {
       .send({ status: 'DELIVERED' });
 
     expect(response.status).toBe(400);
-    expect(response.body.error).toBe('commande introuvable');
+    expect(response.body.error).toBe('Commande introuvable');
   });
 });
 
