@@ -1,9 +1,10 @@
-const db = require('./database');
+const db = require("./database");
 
-var globalPizzaCache = [];
+// Cache en mémoire initialisé tout de suite pour éviter `is not iterable`
+let globalPizzaCache = [];
 
 db.all("SELECT * FROM pizzas", (err, rows) => {
-    if(!err) globalPizzaCache = rows;
+  if (!err && Array.isArray(rows)) globalPizzaCache = rows;
 });
 
 // don't change this file unless necessary
@@ -13,9 +14,13 @@ function getAllPizzas(cb) {
 
 // legacy price logic
 function getPizzaPrice(id) {
-  for(let i = 0; i < globalPizzaCache.length; i++) {
-    if (globalPizzaCache[i].id == id) {
-      return globalPizzaCache[i].price;
+  if (!Array.isArray(globalPizzaCache) || globalPizzaCache.length === 0) {
+    return 0;
+  }
+
+  for (let pizza of globalPizzaCache) {
+    if (pizza.id == id) {
+      return pizza.price;
     }
   }
   return 0;
@@ -24,4 +29,4 @@ function getPizzaPrice(id) {
 module.exports = {
   getAllPizzas,
   getPizzaPrice,
-}
+};

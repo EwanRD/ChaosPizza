@@ -23,4 +23,14 @@ router.get('/orders', (req, res) => {
   });
 });
 
+router.put('/orders/:id/status', (req, res) => {
+  const id = req.params.id;       // récupéré depuis l'URL
+  const { status } = req.body;    // récupéré depuis le body JSON
+
+  orders.updateOrderStatus(id, status, (err, result) => {
+    if (err) res.status(400).json(err);
+    else res.json(result);
+  });
+});
+
 module.exports = router;

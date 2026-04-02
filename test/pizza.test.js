@@ -2,8 +2,15 @@ const pizza = require("../pizza");
 const db = require("../database");
 
 beforeAll((done) => {
-  // ensure DB seeded
-  db.get("SELECT COUNT(*) as count FROM pizzas", (err, row) => done());
+  db.get("SELECT COUNT(*) as count FROM pizzas", () => {
+    const start = Date.now();
+    const tick = () => {
+      if (pizza.getPizzaPrice(1) === 10) return done();
+      if (Date.now() - start > 500) return done();
+      setTimeout(tick, 10);
+    };
+    tick();
+  });
 });
 
 test("getPizzaPrice returns known and unknown prices", () => {
