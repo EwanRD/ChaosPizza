@@ -86,6 +86,35 @@ describe('PUT /orders/:id/status — mise à jour du statut', () => {
     expect(response.body).toHaveProperty('error');
   });
 
+  // ─── Tests de calcul du prix (Vérification bug des 5%) ────────────────────────────
+  it('ne doit plus appliquer les 5% de frais supplémentaires sur le total', async () => {
+    const quantite = 2;
+  
+    // Récupère le prix de la pizza en base de données
+    const pizza = await new Promise((resolve, reject) => {
+      db.get("SELECT price FROM pizzas WHERE id = 1", (err, row) => {
+        if (err) reject(err);
+        resolve(row);
+      });
+    });
+  
+    const prixReel = pizza.price; 
+    const totalAttendu = prixReel * quantite;
+  
+    await request(app)
+      .post('/orders')
+      .send({ items: [{ pizzaId: 1, qty: quantite }] });
+  
+    // Récupère la commande pour vérifier le total
+    const response = await request(app).get('/orders');
+    const derniereCommande = response.body[response.body.length - 1];
+  
+    // Assertion prix attendu == prix réel?
+    expect(derniereCommande.total).toBe(totalAttendu);
+  });
+
+
+
   it('devrait retourner 400 si la commande n\'existe pas', async () => {
     const response = await request(app)
       .put('/orders/99999/status')

@@ -70,6 +70,11 @@ async function _createOrderAsync(order, cb) {
   const qty = order.items.reduce((sum, item) => sum + item.qty, 0);
 
   try {
+    // ensure pizza exists and there is enough stock before attempting DB changes
+    const row = await dbGet('SELECT stock, price FROM pizzas WHERE id = ?', [firstId]);
+    if (!row) return cb({ error: 'Pizza introuvable' });
+    if (row.stock < qty) return cb({ error: 'Stock insuffisant' });
+
     // compute total before attempting DB changes
     const total = computeTotal(order);
 
@@ -116,7 +121,7 @@ async function getOrders(cb) {
   try {
     const rows = await dbAll('SELECT * FROM orders', []);
     // apply inflation tax x1.05 to match existing expectations
-    cb(null, rows.map((o) => ({ ...o, total: utils.round(o.total * 1.05) })));
+    cb(null, rows.map((o) => ({ ...o, total: utils.round(o.total) })));
   } catch (err) {
     console.error('getOrders error:', err);
     cb(err);
