@@ -106,7 +106,7 @@ function getOrders(cb) {
 }
 
 function updateOrderStatus(id, status, cb) {
-  if (!VALID_STATUSES.has(status)) {
+  if (!VALID_STATUSES.includes(status)) {
     return cb({
       error:
         "Statut invalide. Valeurs acceptées : PREPARING, DELIVERING, DELIVERED",
@@ -118,7 +118,7 @@ function updateOrderStatus(id, status, cb) {
     [status, id],
     function (err) {
       if (err) return cb({ error: "Erreur base de données" });
-      if (this.changes === 0) return cb({ error: "Commande introuvable" });
+      if (this.changes === 0) return cb({ error: "commande introuvable" });
       cb(null, { id: Number(id), status });
     },
   );
