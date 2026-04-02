@@ -14,8 +14,9 @@ function getAllPizzas(cb) {
 
 // legacy price logic
 function getPizzaPrice(id) {
-  // Si le cache n'est pas prêt, on évite de crash et on renvoie 0 (comportement attendu par les tests)
-  if (!Array.isArray(globalPizzaCache)) return 0;
+  if (!Array.isArray(globalPizzaCache) || globalPizzaCache.length === 0) {
+    return 0;
+  }
 
   for (let pizza of globalPizzaCache) {
     if (pizza.id == id) {
