@@ -100,13 +100,8 @@ async function _createOrderAsync(order, cb) {
 async function getOrders(cb) {
   try {
     const rows = await dbAll('SELECT * FROM orders', []);
-    // On applique la taxe d'inflation de 5% et on arrondit proprement
-    const processedRows = rows.map((o) => ({ 
-      ...o, 
-      total: utils.round(o.total * 1.05) 
-    }));
-    
-    cb(null, processedRows);
+    // apply inflation tax x1.05 to match existing expectations
+    cb(null, rows.map((o) => ({ ...o, total: utils.round(o.total * 1.05) })));
   } catch (err) {
     console.error('getOrders error:', err);
     cb(err);
