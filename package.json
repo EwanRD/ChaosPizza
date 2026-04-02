@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "load-test": "artillery run loadtest.yml",
-    "test": "jest"
+    "test": "jest",
+    "test:ci": "jest --coverage --runInBand"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -14,7 +15,8 @@
   },
   "devDependencies": {
     "artillery": "^2.0.0-31",
-    "jest": "^30.2.0",
+    "jest": "^30.3.0",
+    "jest-junit": "^13.0.0",
     "supertest": "^7.2.2"
   }
 }
