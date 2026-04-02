@@ -36,7 +36,7 @@ describe('lightweight extra coverage tests', () => {
     test('createOrder pizza introuvable', (done) => {
       jest.doMock('../database', () => ({
         get: (sql, params, cb) => cb(null, undefined),
-        run: () => {},
+        run: (sql, params, cb) => cb && cb.call({ lastID: 0, changes: 0 }, null),
         all: () => {}
       }));
       jest.doMock('../pizza', () => ({ getPizzaPrice: () => 0 }));
@@ -51,7 +51,7 @@ describe('lightweight extra coverage tests', () => {
     test('createOrder stock insuffisant', (done) => {
       jest.doMock('../database', () => ({
         get: (sql, params, cb) => cb(null, { stock: 0, price: 10 }),
-        run: () => {},
+        run: (sql, params, cb) => cb && cb.call({ lastID: 0, changes: 0 }, null),
         all: () => {}
       }));
       jest.doMock('../pizza', () => ({ getPizzaPrice: () => 10 }));
